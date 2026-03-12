@@ -1,11 +1,10 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ImportItem, AnalysisResult, NewsItem } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+const ai = new GoogleGenerativeAI(process.env.API_KEY || "");
 
 export async function getCustomsNews(): Promise<NewsItem[]> {
-  const model = "gemini-2.0-flash";
+  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
   
   const prompt = `
     Pesquise as notícias mais recentes (últimos 30 dias) da Receita Federal do Brasil e do Ministério da Fazenda sobre importação de vestuário, têxteis, Remessa Conforme e novas alíquotas de imposto de importação.
@@ -22,29 +21,15 @@ export async function getCustomsNews(): Promise<NewsItem[]> {
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              summary: { type: Type.STRING },
-              url: { type: Type.STRING },
-              date: { type: Type.STRING }
-            },
-            required: ["title", "summary", "url", "date"]
-          }
-        }
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json"
       }
     });
 
-    const rawText = response.text || "[]";
+    const response = await result.response;
+    const rawText = response.text() || "[]";
     const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(cleanText);
   } catch (error) {
@@ -54,7 +39,7 @@ export async function getCustomsNews(): Promise<NewsItem[]> {
 }
 
 export async function getProductSuggestions(productName: string): Promise<string[]> {
-  const model = "gemini-2.0-flash";
+  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
   
   const prompt = `
     O usuário quer importar um produto, mas não sabe como descrevê-lo de forma técnica ou estratégica para a Receita Federal do Brasil.
@@ -67,19 +52,15 @@ export async function getProductSuggestions(productName: string): Promise<string
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING }
-        }
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json"
       }
     });
 
-    const rawText = response.text || "[]";
+    const response = await result.response;
+    const rawText = response.text() || "[]";
     const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(cleanText);
   } catch (error) {
@@ -89,7 +70,7 @@ export async function getProductSuggestions(productName: string): Promise<string
 }
 
 export async function analyzeImportData(items: ImportItem[]): Promise<AnalysisResult> {
-  const model = "gemini-2.0-flash";
+  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
   
   const prompt = `
     Aja como um especialista em importação de vestuário da China para o Brasil, com foco em normas da Receita Federal do Brasil.
@@ -117,18 +98,18 @@ export async function analyzeImportData(items: ImportItem[]): Promise<AnalysisRe
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
         responseMimeType: "application/json"
       }
     });
 
-    const rawText = response.text || "{}";
+    const response = await result.response;
+    const rawText = response.text() || "{}";
     const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const result = JSON.parse(cleanText);
-    return result as AnalysisResult;
+    const finalResult = JSON.parse(cleanText);
+    return finalResult as AnalysisResult;
   } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
     throw new Error(`Falha ao processar análise aduaneira. Detalhe: ${error.message || error}`);
