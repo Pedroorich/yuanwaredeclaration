@@ -44,7 +44,9 @@ export async function getCustomsNews(): Promise<NewsItem[]> {
       }
     });
 
-    return JSON.parse(response.text || "[]");
+    const rawText = response.text || "[]";
+    const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleanText);
   } catch (error) {
     console.error("Gemini News Error:", error);
     return [];
@@ -77,7 +79,9 @@ export async function getProductSuggestions(productName: string): Promise<string
       }
     });
 
-    return JSON.parse(response.text || "[]");
+    const rawText = response.text || "[]";
+    const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleanText);
   } catch (error) {
     console.error("Gemini Suggestion Error:", error);
     return [];
@@ -121,10 +125,12 @@ export async function analyzeImportData(items: ImportItem[]): Promise<AnalysisRe
       }
     });
 
-    const result = JSON.parse(response.text || "{}");
+    const rawText = response.text || "{}";
+    const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const result = JSON.parse(cleanText);
     return result as AnalysisResult;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
-    throw new Error("Falha ao processar análise aduaneira.");
+    throw new Error(`Falha ao processar análise aduaneira. Detalhe: ${error.message || error}`);
   }
 }
