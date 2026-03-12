@@ -35,6 +35,23 @@ const Auth: React.FC = () => {
         return;
       }
 
+      // ======= VALIDAÇÃO DE COMPRA DA CAKTO =======
+      const { data: isPurchased, error: checkError } = await supabase.rpc('check_email_purchased', { user_email: email });
+      
+      if (checkError) {
+        console.error('Erro na verificação:', checkError);
+        setError('Erro ao verificar autorização no banco de dados. Tente novamente.');
+        setLoading(false);
+        return;
+      }
+
+      if (!isPurchased) {
+        setError('Conta não autorizada. Por favor, crie a conta utilizando o EXATO MESMO E-MAIL que você usou para comprar o acesso no gateway.');
+        setLoading(false);
+        return;
+      }
+      // ===========================================
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
