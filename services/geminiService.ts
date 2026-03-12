@@ -5,7 +5,7 @@ import { ImportItem, AnalysisResult, NewsItem } from "../types";
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 
 export async function getCustomsNews(): Promise<NewsItem[]> {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-2.0-flash";
   
   const prompt = `
     Pesquise as notícias mais recentes (últimos 30 dias) da Receita Federal do Brasil e do Ministério da Fazenda sobre importação de vestuário, têxteis, Remessa Conforme e novas alíquotas de imposto de importação.
@@ -52,7 +52,7 @@ export async function getCustomsNews(): Promise<NewsItem[]> {
 }
 
 export async function getProductSuggestions(productName: string): Promise<string[]> {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-2.0-flash";
   
   const prompt = `
     O usuário quer importar um produto, mas não sabe como descrevê-lo de forma técnica ou estratégica para a Receita Federal do Brasil.
@@ -85,7 +85,7 @@ export async function getProductSuggestions(productName: string): Promise<string
 }
 
 export async function analyzeImportData(items: ImportItem[]): Promise<AnalysisResult> {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-2.0-flash";
   
   const prompt = `
     Aja como um especialista em importação de vestuário da China para o Brasil, com foco em normas da Receita Federal do Brasil.
