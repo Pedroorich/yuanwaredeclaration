@@ -2,12 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ImportItem, AnalysisResult, NewsItem } from "../types";
 
-// Utilize a nova chave fornecida caso a variável de ambiente falhe no Vercel
-const rawApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
-const fallbackKey = "AIzaSyCCqi6lqL2i0LybZRVlem_McLpCkQMP4fo";
-const finalApiKey = (rawApiKey && rawApiKey !== "undefined") ? rawApiKey : fallbackKey;
-
-const ai = new GoogleGenAI({ apiKey: finalApiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 
 export async function getCustomsNews(): Promise<NewsItem[]> {
   const model = "gemini-2.0-flash";
