@@ -83,26 +83,29 @@ const Auth: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.03)] p-8 border border-slate-200/80">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
-            {isRegistering ? 'Criar Conta' : 'Entrar'}
+          <div className="inline-flex bg-gradient-to-br from-indigo-500 to-blue-600 p-2.5 rounded-xl shadow-md shadow-indigo-500/10 mb-4">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+            {isRegistering ? 'Criar Conta' : 'Acesse o Yuanware'}
           </h2>
-          <p className="text-slate-500 mt-2">
+          <p className="text-xs text-slate-400 mt-1.5">
             {isRegistering 
-              ? 'Junte-se a nós hoje mesmo' 
-              : 'Acesse sua conta segura'}
+              ? 'Inscreva-se com o mesmo e-mail da sua compra' 
+              : 'Faça login na plataforma de declaração'}
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded animate-pulse">
+          <div className="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl">
             {error}
           </div>
         )}
 
         {message && (
-          <div className="mb-4 p-3 bg-green-50 border-l-4 border-green-500 text-green-700 text-sm rounded">
+          <div className="mb-5 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold rounded-xl">
             {message}
           </div>
         )}
@@ -110,13 +113,13 @@ const Auth: React.FC = () => {
         <form onSubmit={handleAuth} className="space-y-4">
           {isRegistering && (
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-widest">
+              <label className="block text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1.5">
                 Nome Completo
               </label>
               <input
                 type="text"
                 required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all duration-200 text-sm text-slate-700 placeholder-slate-400"
                 placeholder="Ex: João Silva"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -125,13 +128,13 @@ const Auth: React.FC = () => {
           )}
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-widest">
+            <label className="block text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1.5">
               E-mail
             </label>
             <input
               type="email"
               required
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all duration-200 text-sm text-slate-700 placeholder-slate-400"
               placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -139,13 +142,13 @@ const Auth: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1 uppercase tracking-wider">
+            <label className="block text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1.5">
               Senha
             </label>
             <input
               type="password"
               required
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all duration-200 text-sm text-slate-700 placeholder-slate-400"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -154,13 +157,13 @@ const Auth: React.FC = () => {
 
           {isRegistering && (
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1 uppercase tracking-wider">
+              <label className="block text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1.5">
                 Confirmar Senha
               </label>
               <input
                 type="password"
                 required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all duration-200 text-sm text-slate-700 placeholder-slate-400"
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -171,7 +174,7 @@ const Auth: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition-all transform active:scale-[0.98] disabled:opacity-50"
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl shadow-md shadow-slate-950/10 transition-all active:scale-[0.98] disabled:opacity-50 text-sm mt-2"
           >
             {loading ? 'Processando...' : isRegistering ? 'Cadastrar' : 'Entrar'}
           </button>
@@ -184,7 +187,7 @@ const Auth: React.FC = () => {
               setError(null);
               setMessage(null);
             }}
-            className="text-indigo-600 hover:text-indigo-800 font-semibold text-sm transition-colors"
+            className="text-indigo-650 hover:text-indigo-800 font-semibold text-xs transition-colors"
           >
             {isRegistering 
               ? 'Já tem uma conta? Entre aqui' 

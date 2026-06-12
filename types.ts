@@ -6,6 +6,8 @@ export interface ImportItem {
   pieceType: string;
   audience: 'masculino' | 'feminino' | 'unissex';
   material: string;
+  size: string;
+  color: string;
   quantity: number;
   unitWeight: number; // in kg
   estimatedPrice: number; // in USD
@@ -23,6 +25,7 @@ export interface AnalysisResult {
     unitPrice: number;
     totalPrice: number;
     standardCategory: string;
+    ncmCode: string;
   }[];
   totals: {
     totalValueUsd: number;
@@ -34,7 +37,11 @@ export interface AnalysisResult {
     explanation: string;
     recommendations: string[];
   };
+  customsAlertLevel: 'baixo' | 'medio' | 'alto';
+  customsAlertExplanation: string;
   declarationText: string;
+  declarationTextEn: string;
+  declarationTextZh: string;
   legalObservations: string[];
 }
 

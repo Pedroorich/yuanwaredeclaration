@@ -12,6 +12,8 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
     return saved ? parseFloat(saved) : 5.65;
   });
   const [isFetching, setIsFetching] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [activeLang, setActiveLang] = useState<'pt' | 'en' | 'zh'>('pt');
 
   const fetchRate = async () => {
     setIsFetching(true);
@@ -30,53 +32,101 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
     }
   };
 
+  const getActiveText = () => {
+    let rawText = '';
+    if (activeLang === 'en') rawText = result.declarationTextEn || '';
+    else if (activeLang === 'zh') rawText = result.declarationTextZh || '';
+    else rawText = result.declarationText || '';
+
+    // Guarantee no plus symbols or parentheses are displayed or copied
+    return rawText
+      .replace(/\+/g, ' ')       // replace '+' with space
+      .replace(/\(\s*/g, '')     // remove open parenthesis
+      .replace(/\s*\)/g, '')     // remove close parenthesis
+      .replace(/  +/g, ' ')      // collapse multiple spaces
+      .split('\n')
+      .map(line => line.trim())
+      .join('\n');
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(getActiveText());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleExportCSV = () => {
+    let csvContent = "\ufeff"; // BOM for UTF-8 compatibility in Excel
+    csvContent += "Categoria,Descricao Tecnica,Quantidade,Preco Unitario (USD),Preco Total (USD)\n";
+    
+    result.items.forEach(item => {
+      const quantity = Math.round(item.totalPrice / item.unitPrice) || 1;
+      const category = `"${item.standardCategory.replace(/"/g, '""')}"`;
+      const desc = `"${item.technicalDescription.replace(/\+/g, ' ').replace(/\(\s*/g, '').replace(/\s*\)/g, '').replace(/"/g, '""')}"`;
+      csvContent += `${category},${desc},${quantity},${item.unitPrice.toFixed(2)},${item.totalPrice.toFixed(2)}\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "declaracao_otimizada.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-        <div className="bg-slate-900 p-4 text-white flex justify-between items-center">
-          <h2 className="text-xl font-bold uppercase tracking-wider">Resultado da Análise Aduaneira</h2>
-          <div className="text-sm bg-blue-600 px-3 py-1 rounded-full">Processado via IA</div>
+      <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-slate-200/80 overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-950 to-slate-900 px-6 py-5 text-white flex justify-between items-center border-b border-slate-800">
+          <div>
+            <h2 className="text-base font-bold tracking-tight">Resultado da Análise Aduaneira</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Valores aduaneiros propostos e descrições otimizadas</p>
+          </div>
+          <span className="text-[10px] font-bold bg-blue-500/20 border border-blue-500/30 text-blue-400 px-2.5 py-1 rounded-full uppercase tracking-wider">
+            Inteligência Artificial
+          </span>
         </div>
 
         <div className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col items-center justify-center">
-              <span className="text-slate-500 text-xs font-bold uppercase mb-1">Valor Total (USD)</span>
-              <span className="text-3xl font-black text-slate-800">${result.totals.totalValueUsd.toFixed(2)}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+            <div className="bg-slate-50/60 p-5 rounded-2xl border border-slate-100 flex flex-col">
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Valor Total Declarado</span>
+              <span className="text-2xl font-bold text-slate-800 mt-1">${result.totals.totalValueUsd.toFixed(2)} USD</span>
             </div>
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col items-center justify-center">
-              <span className="text-slate-500 text-xs font-bold uppercase mb-1">Peso Total Estimado</span>
-              <span className="text-3xl font-black text-slate-800">{result.totals.totalWeightKg.toFixed(2)} kg</span>
+            <div className="bg-slate-50/60 p-5 rounded-2xl border border-slate-100 flex flex-col">
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Peso Total Estimado</span>
+              <span className="text-2xl font-bold text-slate-800 mt-1">{result.totals.totalWeightKg.toFixed(2)} kg</span>
             </div>
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col items-center justify-center">
-              <span className="text-slate-500 text-xs font-bold uppercase mb-1">Qtd Itens</span>
-              <span className="text-3xl font-black text-slate-800">{result.totals.itemCount}</span>
+            <div className="bg-slate-50/60 p-5 rounded-2xl border border-slate-100 flex flex-col">
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Quantidade de Itens</span>
+              <span className="text-2xl font-bold text-slate-800 mt-1">{result.totals.itemCount} un</span>
             </div>
           </div>
 
-          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            Descrições Técnicas para Declaração
+          <h3 className="text-sm font-bold text-slate-800 mb-4">
+            Tabela de Declarações Otimizadas
           </h3>
-          <div className="overflow-x-auto border rounded-lg mb-8">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+          <div className="overflow-x-auto border border-slate-200/80 rounded-xl mb-8 shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
+            <table className="min-w-full divide-y divide-slate-100">
+              <thead className="bg-slate-50/80">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Descrição Otimizada</th>
-                  <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Preço Unit.</th>
-                  <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Preço Total</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Descrição Otimizada</th>
+                  <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">Preço Unit.</th>
+                  <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">Preço Total</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
+              <tbody className="bg-white divide-y divide-slate-100">
                 {result.items.map((item, idx) => (
-                  <tr key={idx}>
+                  <tr key={idx} className="hover:bg-slate-50/30 transition-colors">
                     <td className="px-6 py-4 whitespace-normal text-sm text-slate-700 italic">
-                      "{item.technicalDescription}"
+                      "{item.technicalDescription.replace(/\+/g, ' ').replace(/\(\s*/g, '').replace(/\s*\)/g, '')}"
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-slate-900">
                       ${item.unitPrice.toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-blue-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-indigo-600">
                       ${item.totalPrice.toFixed(2)}
                     </td>
                   </tr>
@@ -87,47 +137,41 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
 
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                Tabela de Referência: Valor vs Taxação vs Peso
+              <h3 className="text-sm font-bold text-slate-800">
+                Tabela de Referência Rápida: Valores de Remessa Conforme
               </h3>
               <button 
                 onClick={fetchRate}
                 disabled={isFetching}
-                className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
               >
-                <svg className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                {isFetching ? 'Buscando...' : 'Atualizar Câmbio'}
+                {isFetching ? 'Atualizando...' : 'Atualizar Câmbio'}
               </button>
             </div>
-            <div className="overflow-x-auto border rounded-lg shadow-sm bg-slate-50">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-100">
+            <div className="overflow-x-auto border border-slate-200/60 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.01)] bg-slate-50/50">
+              <table className="min-w-full divide-y divide-slate-150">
+                <thead className="bg-slate-100/80">
                   <tr>
-                    <th className="px-4 py-2 text-center text-[10px] font-bold text-slate-600 uppercase">Declarado (USD)</th>
-                    <th className="px-4 py-2 text-center text-[10px] font-bold text-slate-600 uppercase">Câmbio (Est.)</th>
-                    <th className="px-4 py-2 text-center text-[10px] font-bold text-slate-600 uppercase">Taxação (BRL)</th>
-                    <th className="px-4 py-2 text-center text-[10px] font-bold text-slate-600 uppercase">Peso Sugerido</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">Declarado (USD)</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">Câmbio (Est.)</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">Taxação Total (BRL)</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">Peso de Segurança Sugerido</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-slate-100">
+                <tbody className="bg-white divide-y divide-slate-100 text-center">
                   {[1, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map((usd) => {
                     const valBrl = usd * exchangeRate;
                     const importTax = valBrl * 0.20;
                     const icms = (valBrl + importTax) / 0.83 * 0.17;
                     const totalTax = importTax + icms;
-                    
-                    // Lógica de peso proporcional: 
-                    // Para valores baixos, peso deve ser bem baixo.
-                    // $1 -> 0.1kg, $50 -> 2.5kg
                     const suggestedWeight = (usd * 0.048) + 0.1;
                     
                     return (
-                      <tr key={usd} className={usd === 50 ? "bg-blue-50/30" : ""}>
-                        <td className="px-4 py-2 text-center text-sm font-bold text-slate-800">${usd.toFixed(2)}</td>
-                        <td className="px-4 py-2 text-center text-xs text-slate-500">R$ {exchangeRate.toFixed(2)}</td>
-                        <td className="px-4 py-2 text-center text-sm font-black text-emerald-600">R$ {totalTax.toFixed(2)}</td>
-                        <td className="px-4 py-2 text-center text-sm font-medium text-blue-600">{suggestedWeight.toFixed(2)} kg</td>
+                      <tr key={usd} className={usd === 50 ? "bg-amber-50/20" : "hover:bg-slate-50/30 transition-colors"}>
+                        <td className="px-4 py-3 text-sm font-bold text-slate-800">${usd.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500">R$ {exchangeRate.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm font-black text-emerald-600">R$ {totalTax.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-indigo-600">{suggestedWeight.toFixed(2)} kg</td>
                       </tr>
                     );
                   })}
@@ -135,40 +179,131 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
               </table>
             </div>
             <p className="mt-2 text-[10px] text-slate-400 italic">
-              * Cálculos baseados no Remessa Conforme (20% II + 17% ICMS por dentro). O peso sugerido visa evitar discrepâncias aduaneiras. Câmbio atualizado via AwesomeAPI.
+              * Cálculos considerando 20% de Imposto de Importação + 17% de ICMS por dentro (Remessa Conforme). Câmbio obtido da AwesomeAPI.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-orange-50 p-6 rounded-xl border border-orange-100">
-              <h3 className="text-orange-800 font-bold mb-3 flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                Análise de Risco Tributário
-              </h3>
-              <p className="text-sm font-semibold text-orange-700 mb-2 uppercase">{result.riskAnalysis.taxPossibility}</p>
-              <p className="text-sm text-orange-900 leading-relaxed mb-4">{result.riskAnalysis.explanation}</p>
-              <ul className="text-xs text-orange-800 space-y-1 list-disc pl-4">
-                {result.riskAnalysis.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
-              </ul>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column: Customs Risk Radar */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.01)] flex flex-col justify-between">
+              <div>
+                <h3 className="text-slate-800 font-bold mb-4">
+                  Radar de Fiscalização Aduaneira
+                </h3>
+                
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 mb-4">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 mb-2">
+                    <span className="uppercase tracking-wider">ALERTA DE RISCO ADUANEIRO</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] uppercase font-bold text-white ${
+                      result.customsAlertLevel === 'alto' ? 'bg-red-500 shadow-sm' :
+                      result.customsAlertLevel === 'medio' ? 'bg-amber-500 shadow-sm animate-pulse' : 'bg-emerald-500 shadow-sm'
+                    }`}>{result.customsAlertLevel || 'baixo'}</span>
+                  </div>
+                  <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden flex">
+                    <div className={`h-full transition-all duration-500 ${
+                      result.customsAlertLevel === 'alto' ? 'w-full bg-red-500' :
+                      result.customsAlertLevel === 'medio' ? 'w-2/3 bg-amber-500' : 'w-1/3 bg-emerald-500'
+                    }`} />
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-700 leading-relaxed font-semibold bg-slate-50/60 p-3 rounded-lg border border-slate-100 mb-4 italic">
+                  "{result.customsAlertExplanation || 'Fiscalização normal para remessas individuais.'}"
+                </p>
+              </div>
+
+              <div className="mt-2 pt-4 border-t border-slate-100">
+                <h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wide">Probabilidade de Taxação:</h4>
+                <p className="text-xs font-bold text-indigo-600 mb-2 uppercase">{result.riskAnalysis.taxPossibility}</p>
+                <p className="text-xs text-slate-600 leading-relaxed">{result.riskAnalysis.explanation}</p>
+                
+                {result.riskAnalysis.recommendations?.length > 0 && (
+                  <ul className="text-[10px] text-slate-500 space-y-1 list-disc pl-4 mt-2">
+                    {result.riskAnalysis.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                  </ul>
+                )}
+              </div>
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-              <h3 className="text-slate-800 font-bold mb-3 flex items-center gap-2">
-                <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
-                Texto-Base de Declaração
-              </h3>
-              <div className="bg-white p-4 rounded border text-xs font-mono text-slate-600 whitespace-pre-wrap">
-                {result.declarationText}
+            {/* Right Column: Multilingual Declaration Output */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.01)] flex flex-col justify-between">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <h3 className="text-slate-800 font-bold">
+                    Texto de Declaração CSSBUY
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={handleExportCSV}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition-all duration-150 flex items-center gap-1.5"
+                      title="Exportar no formato ideal para planilhas"
+                    >
+                      CSV
+                    </button>
+                    <button 
+                      onClick={handleCopy}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-150 flex items-center gap-1.5 ${
+                        copied 
+                          ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/10' 
+                          : 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm'
+                      }`}
+                    >
+                      {copied ? 'Copiado!' : 'Copiar Texto'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Multilingual Translation Tabs */}
+                <div className="flex gap-1.5 p-1 bg-slate-100 rounded-xl mb-3 text-xs w-fit">
+                  <button 
+                    onClick={() => setActiveLang('pt')}
+                    className={`px-3 py-1.5 font-semibold transition-all rounded-lg ${
+                      activeLang === 'pt' 
+                        ? 'bg-white text-slate-900 shadow-sm' 
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    Português (PT-BR)
+                  </button>
+                  <button 
+                    onClick={() => setActiveLang('en')}
+                    className={`px-3 py-1.5 font-semibold transition-all rounded-lg ${
+                      activeLang === 'en' 
+                        ? 'bg-white text-slate-900 shadow-sm' 
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    English (EN)
+                  </button>
+                  <button 
+                    onClick={() => setActiveLang('zh')}
+                    className={`px-3 py-1.5 font-semibold transition-all rounded-lg ${
+                      activeLang === 'zh' 
+                        ? 'bg-white text-slate-900 shadow-sm' 
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    中文 (CHINÊS)
+                  </button>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 whitespace-pre-wrap min-h-[140px] max-h-[220px] overflow-y-auto shadow-inner leading-relaxed">
+                  {getActiveText()}
+                </div>
+              </div>
+
+              <div className="mt-4 text-[10px] text-slate-400 leading-relaxed">
+                * Selecione a aba e copie. A versão em inglês é o padrão internacional. A versão em chinês é ideal para suporte de agentes locais da redirecionadora.
               </div>
             </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-100">
-            <h4 className="text-sm font-bold text-slate-800 mb-2 uppercase">Observações Legais</h4>
+            <h4 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Observações Aduaneiras Legais</h4>
             <div className="space-y-2">
               {result.legalObservations.map((obs, i) => (
                 <div key={i} className="flex gap-2 text-xs text-slate-500 italic">
-                  <span>•</span>
+                  <span className="text-slate-400 font-bold">•</span>
                   <span>{obs}</span>
                 </div>
               ))}
