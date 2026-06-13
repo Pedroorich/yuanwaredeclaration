@@ -73,20 +73,34 @@ export async function analyzeImportData(items: ImportItem[]): Promise<AnalysisRe
   const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
   
   const prompt = `
-    Aja como um especialista em importação de vestuário da China para o Brasil, com foco em normas de declaração aduaneira para a Receita Federal do Brasil.
+    Aja como um especialista em declaração aduaneira e otimização fiscal para remessas internacionais enviadas para a Receita Federal do Brasil (Remessa Conforme).
     
-    Analise a seguinte lista de itens de importa�    Siga estas etapas rigorosamente:
-    1. CLASSIFICAÇÃO TÊXTIL:
-       Identifique a categoria padrão para cada item (ex: camisetas, calçados, calça jeans, cintos, jaquetas).
+    Você deve analisar a seguinte lista de itens de importação cadastrados pelo usuário:
+    ${JSON.stringify(items, null, 2)}
+
+    ========================================================================
+    REGRA DE EXCLUSIVIDADE ABSOLUTA (CRÍTICA):
+    1. O array "items" na sua resposta JSON DEVE conter exatamente os mesmos itens fornecidos na lista de entrada acima.
+    2. NÃO adicione nenhum item extra, NÃO invente novos produtos, e NÃO remova nenhum item.
+    3. Mantenha correspondência exata de IDs: cada item na saída deve ter o mesmo "id" do item correspondente na entrada.
+    4. Se a lista de entrada tem apenas 1 item (por exemplo, "Pocket OSMO3"), a lista "items" na sua resposta DEVE ter exatamente 1 item, com o mesmo ID correspondente da entrada.
+    5. É TERMINANTEMENTE PROIBIDO adicionar quaisquer roupas, calçados, bonés, camisetas, jaquetas ou calças que não façam parte da lista de entrada. Os exemplos abaixo servem apenas para definir preços caso itens dessas categorias existam na entrada.
+    ========================================================================
+
+    Siga estas etapas para processar cada item da entrada:
+    1. CLASSIFICAÇÃO:
+       Identifique a categoria padrão para cada item (ex: camisetas, calçados, calça jeans, cintos, jaquetas, eletrônicos, câmeras, utilidades).
        
     2. VALOR DECLARADO OTIMIZADO (ESTRATÉGIA DE FISCALIZAÇÃO): 
-       Ignore o preço original inserido pelo usuário (que pode ser de varejo ou grife) e proponha um valor unitário aduaneiro realista e baixo (Customs Declared Value) baseado no material/categoria para a declaração aduaneira. Siga estritamente as regras abaixo:
-       - Camisetas / Blusas / Tops / Básicas: Proponha sempre entre $2.00 e $2.50 USD (preferencialmente $2.00).
-       - Tênis / Calçados / Sneakers: Proponha sempre entre $6.00 e $8.00 USD (ex: $6.00, $6.40, $6.80, $8.00).
-       - Jaquetas / Casacos / Sobretudos: Proponha sempre entre $4.00 e $6.00 USD (ex: $5.00).
-       - Calças / Bermudas / Jeans: Proponha sempre entre $3.00 e $6.00 USD (ex: $3.70, $4.00, $5.00).
-       - Cintos / Acessórios / Bonés: Proponha sempre entre $1.00 e $2.00 USD (ex: $1.10).
-       - Outros itens de vestuário/têxteis: Proponha valores baixos coerentes, entre $1.50 e $3.00 USD.
+       Ignore o preço original informado pelo usuário e proponha um valor unitário aduaneiro realista e baixo (Customs Declared Value) para a declaração aduaneira do item, seguindo as regras abaixo:
+       - Se for um item de vestuário/acessórios, use as faixas padrão:
+         * Camisetas / Blusas / Tops / Básicas: Proponha sempre entre $2.00 e $2.50 USD (preferencialmente $2.00).
+         * Tênis / Calçados / Sneakers: Proponha sempre entre $6.00 e $8.00 USD (ex: $6.00, $6.40, $6.80, $8.00).
+         * Jaquetas / Casacos / Sobretudos: Proponha sempre entre $4.00 e $6.00 USD (ex: $5.00).
+         * Calças / Bermudas / Jeans: Proponha sempre entre $3.00 e $6.00 USD (ex: $3.70, $4.00, $5.00).
+         * Cintos / Acessórios / Bonés: Proponha sempre entre $1.00 e $2.00 USD (ex: $1.10).
+       - Se for qualquer outro produto que NÃO seja vestuário (ex: eletrônicos, câmeras, cosméticos, utilidades, brinquedos):
+         * Proponha um valor unitário aduaneiro baixo e realista, coerente com o item para evitar retenção fiscal pela fiscalização (ex: entre $5.00 e $15.00 USD para câmeras, pequenos eletrônicos ou acessórios). No caso de câmeras compactas ou dispositivos digitais de bolso (como "Pocket OSMO3"), proponha um valor entre $10.00 e $15.00 USD.
     
     3. TOTAIS OTIMIZADOS: Calcule os totais do lote usando os novos preços unitários otimizados propostos por você (Preço Otimizado * Quantidade).
     
@@ -100,7 +114,7 @@ export async function analyzeImportData(items: ImportItem[]): Promise<AnalysisRe
     5. DETALHES NA DESCRIÇÃO TÉCNICA:
        Para cada item, gere uma descrição técnica no campo "technicalDescription" detalhada e em português. Ela deve descrever o produto incluindo genericamente seu tipo, sua cor cadastrada, seu tamanho cadastrado, sua composição de material e público-alvo.
        Importante: Não use o caractere "+" e nem parênteses na descrição técnica.
-       Exemplo: "Vestuário de uso cotidiano, tipo calçado de caminhada leve, na cor Multicolor, tamanho 42, confeccionado em poliéster, destinado ao público unissex."
+       Exemplo: "Dispositivo eletrônico de captura de vídeo e fotos, tipo câmera digital de bolso, na cor Preto, tamanho Único, confeccionado em plástico e componentes eletrônicos, de uso pessoal."
  
     6. TEXTOS DE DECLARAÇÃO CSSBUY MULTILÍNGUE (MANDATÓRIO, SEM PARÊNTESES E SEM O SÍMBOLO "+"):
        Gere três versões da declaração no padrão da redirecionadora CSSBUY.
@@ -110,20 +124,12 @@ export async function analyzeImportData(items: ImportItem[]): Promise<AnalysisRe
        ATENÇÃO CRÍTICA: A parte da cor e do tamanho NÃO deve conter em hipótese alguma o caractere "+" e NÃO deve estar entre parênteses. Deve ser apenas a cor e o tamanho separados por um espaço. Exemplo correto: "Preto G" ou "Multicolor 42". Exemplo INCORRETO: "Preto + G", "(Preto G)", "Preto + 46". Não use o sinal "+" em nenhum lugar da declaração.
        
        Onde:
-       - [Nome Comercial] é o nome original do produto cadastrado pelo usuário (ex: Tênis Yeezy, Camiseta oversized).
+       - [Nome Comercial] é o nome original do produto cadastrado pelo usuário (ex: DJI Pocket, Pocket OSMO3).
        - O caractere de pipe " | ".
        - [Quantidade]: Se a quantidade for maior que 1, insira "[Qtd]u " (ex: "3u " ou "4u "). Se for igual a 1, não coloque nada (deixe em branco).
        - [Preço Otimizado]: O preço unitário aduaneiro otimizado calculado por você.
        
        As três versões de declaração a serem preenchidas são:
-        Exemplos de linhas de declaração esperadas:
-       - Tênis Yeezy | 3u Tenis casual, Multicolor 41, poliéster, casual. $6.80
-       - Camiseta oversized | Camiseta, Preto G, algodão, básica. $2.00
-       - Calça Slim | 4u Calça slim, Multicolor 42, jeans, básica. $3.70
-       - Tênis Yeezy | 3u Tênis caminhada, Multicolor 42, fio poliéster, casual. $6.40
-       - Tênis on | Tênis corrida, Preto 41, poliéster, tênis. $6.00
-       - Cinto LV | Cinto, Marrom 100cm, couro sintético, simples. $1.10
-       
        - "declarationText" (Português): Use termos em português.
        - "declarationTextEn" (Inglês): Use termos em inglês.
        - "declarationTextZh" (Chinês): Use termos em chinês tradicional ou simplificado.
@@ -146,9 +152,6 @@ export async function analyzeImportData(items: ImportItem[]): Promise<AnalysisRe
       "customsAlertExplanation": "string",
       "declarationText": "string contendo todas as linhas de declaração em português unidas por \\n",
       "declarationTextEn": "string contendo todas as linhas de declaração em inglês unidas por \\n",
-      "declarationTextZh": "string contendo todas as linhas de declaração em chinês unidas por \\n",
-      "legalObservations": ["string"]
-    } em inglês unidas por \\n",
       "declarationTextZh": "string contendo todas as linhas de declaração em chinês unidas por \\n",
       "legalObservations": ["string"]
     }
