@@ -4,28 +4,29 @@ import { ImportItem, AnalysisResult, NewsItem } from "../types";
 const ai = new GoogleGenerativeAI(process.env.API_KEY || "");
 
 export async function getCustomsNews(): Promise<NewsItem[]> {
-  const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = ai.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    tools: [{ googleSearch: {} }] as any
+  });
   
   const prompt = `
-    Pesquise as notícias mais recentes (últimos 30 dias) da Receita Federal do Brasil e do Ministério da Fazenda sobre importação de vestuário, têxteis, Remessa Conforme e novas alíquotas de imposto de importação.
+    Hoje é dia 12 de Junho de 2026.
+    Pesquise no Google as notícias reais e mais recentes (últimos 30 dias de 2026) da Receita Federal do Brasil e do Ministério da Fazenda sobre importação de vestuário, têxteis, Remessa Conforme e novas alíquotas de imposto de importação.
     
-    Retorne as 4 notícias mais relevantes.
+    Retorne as 4 notícias reais mais relevantes de 2026.
     Para cada notícia, forneça:
     1. Título conciso.
     2. Resumo de uma frase explicando o impacto para o importador.
-    3. URL da fonte oficial (gov.br ou portais de notícias confiáveis).
-    4. Data da notícia.
+    3. URL da fonte oficial (use o link retornado pelo Google Search ou portais de notícias oficiais e confiáveis).
+    4. Data da notícia (deve ser no formato DD/MM/2026).
     
-    Responda APENAS um array JSON seguindo este esquema:
+    Responda APENAS um array JSON válido seguindo este esquema (sem nenhuma outra palavra, explicação ou bloco de código fora do JSON):
     [{ "title": "string", "summary": "string", "url": "string", "date": "string" }]
   `;
 
   try {
     const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
     });
 
     const response = await result.response;
